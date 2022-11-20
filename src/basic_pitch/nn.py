@@ -20,14 +20,16 @@ class HarmonicStacking(nn.Module):
         n_output_freqs: The number of frequency bins in each harmonic layer.
     """
 
-    def __init__(
+    def setup(
         self, bins_per_semitone: int, harmonics: List[float], n_output_freqs: int, name: str = "harmonic_stacking"
     ):
+        """Downsample frequency by stride, upsample channels by 4."""
+        super().setup()
         self.bins_per_semitone = bins_per_semitone
         self.harmonics = harmonics
-        self.shifts = [int(round(12.0 * self.bins_per_semitone * jnp.log2(float(h)))) for h in self.harmonics]
+        self.shifts = [int(jnp.round(12.0 * self.bins_per_semitone * jnp.log2(float(h))) for h in self.harmonics)]
         self.n_output_freqs = n_output_freqs
-
+        
     def get_config(self) -> Any:
         config = super().get_config().copy()
         config.update(
@@ -40,7 +42,7 @@ class HarmonicStacking(nn.Module):
         )
         return config
 
-    def call(self, x: jnp.ndarray) -> jnp.ndarray:
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         assert (len(x.shape) == 4)
         channels = []
         for shift in self.shifts:
