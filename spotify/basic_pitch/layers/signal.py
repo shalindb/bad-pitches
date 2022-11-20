@@ -159,7 +159,7 @@ class NormalizedLog(tf.keras.layers.Layer):
     This layer adds 1e-10 to all values as a way to avoid NaN math.
     """
 
-    def build(self, input_shape: tf.Tensor) -> None:
+    def build(self, input_shape: tf.TensorShape) -> None:
         self.squeeze_batch = lambda batch: batch
         rank = input_shape.rank
         if rank == 4:
