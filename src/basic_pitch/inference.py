@@ -23,8 +23,8 @@ import pathlib
 import traceback
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-from tensorflow import Tensor, signal, keras, saved_model
-import numpy as np
+
+import jax.numpy as jnp
 import librosa
 import pretty_midi
 
@@ -43,13 +43,13 @@ from basic_pitch.commandline_printing import (
 )
 
 
-def window_audio_file(audio_original: Tensor, hop_size: int) -> Tuple[Tensor, List[Dict[str, int]]]:
+def window_audio_file(audio_original: jnp.ndarray, hop_size: int) -> Tuple[jnp.ndarray, List[Dict[str, int]]]:
     """
     Pad appropriately an audio file, and return as
     windowed signal, with window length = AUDIO_N_SAMPLES
 
     Returns:
-        audio_windowed: tensor with shape (n_windows, AUDIO_N_SAMPLES, 1)
+        audio_windowed: ndarray with shape (n_windows, AUDIO_N_SAMPLES, 1)
             audio windowed into fixed length chunks
         window_times: list of {'start':.., 'end':...} objects (times in seconds)
 
@@ -72,13 +72,13 @@ def window_audio_file(audio_original: Tensor, hop_size: int) -> Tuple[Tensor, Li
 
 def get_audio_input(
     audio_path: Union[pathlib.Path, str], overlap_len: int, hop_size: int
-) -> Tuple[Tensor, List[Dict[str, int]], int]:
+) -> Tuple[jnp.ndarray, List[Dict[str, int]], int]:
     """
     Read wave file (as mono), pad appropriately, and return as
     windowed signal, with window length = AUDIO_N_SAMPLES
 
     Returns:
-        audio_windowed: tensor with shape (n_windows, AUDIO_N_SAMPLES, 1)
+        audio_windowed: ndarray with shape (n_windows, AUDIO_N_SAMPLES, 1)
             audio windowed into fixed length chunks
         window_times: list of {'start':.., 'end':...} objects (times in seconds)
         audio_original_length: int
@@ -95,7 +95,7 @@ def get_audio_input(
     return audio_windowed, window_times, original_length
 
 
-def unwrap_output(output: Tensor, audio_original_length: int, n_overlapping_frames: int) -> np.array:
+def unwrap_output(output: jnp.ndarray, audio_original_length: int, n_overlapping_frames: int) -> np.array:
     """Unwrap batched model predictions to a single matrix.
 
     Args:
