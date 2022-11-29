@@ -124,7 +124,7 @@ def unwrap_output(output: jnp.ndarray, audio_original_length: int, n_overlapping
 
 def run_inference(
     audio_path: Union[pathlib.Path, str],
-    model: keras.Model,
+    model: nn.Module,
     debug_file: Optional[pathlib.Path] = None,
 ) -> Dict[str, jnp.array]:
     """Run the model on the input audio path.
@@ -260,10 +260,22 @@ def save_note_events(
                 row.extend(pitch_bend)
             writer.writerow(row)
 
+### my attempts at utilizing this link (https://flax.readthedocs.io/en/latest/guides/transfer_learning.html?highlight=load%20model#transfer-the-parameters) ###
+from IPython.display import clear_output
+from transformers import FlaxCLIPModel
+
+# Note: FlaxCLIPModel is not a Flax Module
+def load_model(model_path):
+  clip = FlaxCLIPModel.from_pretrained(model_path)
+  clear_output(wait=False) # Clear the loading messages
+  module = clip.module # Extract the Flax Module
+  variables = {'params': clip.params} # Extract the parameters
+  return module, variables
+
 
 def predict(
     audio_path: Union[pathlib.Path, str],
-    model_or_model_path: Union[keras.Model, pathlib.Path, str] = ICASSP_2022_MODEL_PATH,
+    model_or_model_path: Union[nn.Module, pathlib.Path, str] = ICASSP_2022_MODEL_PATH,
     onset_threshold: float = 0.5,
     frame_threshold: float = 0.3,
     minimum_note_length: float = 58,
@@ -295,7 +307,7 @@ def predict(
         # someone wants to place this function in a loop,
         # the model doesn't have to be reloaded every function call
         if isinstance(model_or_model_path, (pathlib.Path, str)):
-            model = saved_model.load(str(model_or_model_path))
+            model, _ = load_model(str(model_or_model_path))
         else:
             model = model_or_model_path
 
@@ -379,7 +391,7 @@ def predict_and_save(
         debug_file: An optional path to output debug data to. Useful for testing/verification.
         sonification_samplerate: Sample rate for rendering audio from MIDI.
     """
-    model = saved_model.load(str(model_path))
+    model, _ = load_model(str(model_path))
 
     for audio_path in audio_path_list:
         print("")
