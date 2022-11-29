@@ -20,8 +20,9 @@
 # The above code is released under an MIT license.
 
 import warnings
-import tensorflow as tf
-import numpy as np
+import jax.numpy as jnp
+from jax import lax
+from flax import linen as nn
 from typing import Any, List, Optional, Tuple, Union
 
 import scipy.signal
@@ -31,8 +32,8 @@ def create_lowpass_filter(
     band_center: float = 0.5,
     kernel_length: int = 256,
     transition_bandwidth: float = 0.03,
-    dtype: tf.dtypes.DType = tf.float32,
-) -> np.ndarray:
+    dtype: jnp.dtype = jnp.float32,
+) -> jnp.ndarray:
     """
     Calculate the highest frequency we need to preserve and the lowest frequency we allow
     to pass through. Note that frequency is on a scale from 0 to 1 where 0 is 0 and 1 is
@@ -58,12 +59,12 @@ def create_lowpass_filter(
     # This command produces the filter kernel coefficients
     filter_kernel = scipy.signal.firwin2(kernel_length, key_frequencies, gain_at_key_frequencies)
 
-    return tf.constant(filter_kernel, dtype=dtype)
+    return jnp.array(filter_kernel, dtype=dtype)
 
 
 def next_power_of_2(A: int) -> int:
     """A helper function to calculate the next nearest number to the power of 2."""
-    return int(np.ceil(np.log2(A)))
+    return int(jnp.ceil(jnp.log2(A)))
 
 
 def early_downsample(
@@ -89,7 +90,7 @@ def early_downsample(
 def early_downsample_count(nyquist_hz: float, filter_cutoff_hz: float, hop_length: int, n_octaves: int) -> int:
     """Compute the number of early downsampling operations"""
 
-    downsample_count1 = max(0, int(np.ceil(np.log2(0.85 * nyquist_hz / filter_cutoff_hz)) - 1) - 1)
+    downsample_count1 = max(0, int(jnp.ceil(jnp.log2(0.85 * nyquist_hz / filter_cutoff_hz)) - 1) - 1)
     num_twos = next_power_of_2(hop_length)
     downsample_count2 = max(0, num_twos - n_octaves + 1)
 
@@ -97,8 +98,8 @@ def early_downsample_count(nyquist_hz: float, filter_cutoff_hz: float, hop_lengt
 
 
 def get_early_downsample_params(
-    sr: Union[float, int], hop_length: int, fmax_t: float, Q: float, n_octaves: int, dtype: tf.dtypes.DType
-) -> Tuple[Union[float, int], int, float, np.array, bool]:
+    sr: Union[float, int], hop_length: int, fmax_t: float, Q: float, n_octaves: int, dtype: jnp.dtype
+) -> Tuple[Union[float, int], int, float, jnp.array, bool]:
     """Compute downsampling parameters used for early downsampling"""
 
     window_bandwidth = 1.5  # for hann window
@@ -119,13 +120,13 @@ def get_early_downsample_params(
     return sr, hop_length, downsample_factor, early_downsample_filter, earlydownsample
 
 
-def get_window_dispatch(window: Union[str, Tuple[str, float]], N: int, fftbins: bool = True) -> np.array:
+def get_window_dispatch(window: Union[str, Tuple[str, float]], N: int, fftbins: bool = True) -> jnp.array:
     if isinstance(window, str):
         return scipy.signal.get_window(window, N, fftbins=fftbins)
     elif isinstance(window, tuple):
         if window[0] == "gaussian":
             assert window[1] >= 0
-            sigma = np.floor(-N / 2 / np.sqrt(-2 * np.log(10 ** (-window[1] / 20))))
+            sigma = jnp.floor(-N / 2 / jnp.sqrt(-2 * jnp.log(10 ** (-window[1] / 20))))
             return scipy.signal.get_window(("gaussian", sigma), N, fftbins=fftbins)
         else:
             Warning("Tuple windows may have undesired behaviour regarding Q factor")
@@ -145,48 +146,48 @@ def create_cqt_kernels(
     window: str = "hann",
     fmax: Optional[float] = None,
     topbin_check: bool = True,
-) -> Tuple[np.array, int, np.array, np.array]:
+) -> Tuple[jnp.array, int, jnp.array, jnp.array]:
     """
     Automatically create CQT kernels in time domain
     """
 
-    fftLen = 2 ** next_power_of_2(np.ceil(Q * fs / fmin))
+    fftLen = 2 ** next_power_of_2(jnp.ceil(Q * fs / fmin))
 
     if (fmax is not None) and (n_bins is None):
-        n_bins = np.ceil(bins_per_octave * np.log2(fmax / fmin))  # Calculate the number of bins
-        freqs = fmin * 2.0 ** (np.r_[0:n_bins] / np.float(bins_per_octave))
+        n_bins = jnp.ceil(bins_per_octave * jnp.log2(fmax / fmin))  # Calculate the number of bins
+        freqs = fmin * 2.0 ** (jnp.r_[0:n_bins] / jnp.float(bins_per_octave))
 
     elif (fmax is None) and (n_bins is not None):
-        freqs = fmin * 2.0 ** (np.r_[0:n_bins] / np.float(bins_per_octave))
+        freqs = fmin * 2.0 ** (jnp.r_[0:n_bins] / jnp.float(bins_per_octave))
 
     else:
         warnings.warn("If fmax is given, n_bins will be ignored", SyntaxWarning)
-        n_bins = np.ceil(bins_per_octave * np.log2(fmax / fmin))  # Calculate the number of bins
-        freqs = fmin * 2.0 ** (np.r_[0:n_bins] / np.float(bins_per_octave))
+        n_bins = jnp.ceil(bins_per_octave * jnp.log2(fmax / fmin))  # Calculate the number of bins
+        freqs = fmin * 2.0 ** (jnp.r_[0:n_bins] / jnp.float(bins_per_octave))
 
-    if np.max(freqs) > fs / 2 and topbin_check is True:
+    if jnp.max(freqs) > fs / 2 and topbin_check is True:
         raise ValueError(
             "The top bin {}Hz has exceeded the Nyquist frequency, please reduce the n_bins".format(np.max(freqs))
         )
 
-    tempKernel = np.zeros((int(n_bins), int(fftLen)), dtype=np.complex64)
+    tempKernel = jnp.zeros((int(n_bins), int(fftLen)), dtype=jnp.complex64)
 
-    lengths = np.ceil(Q * fs / freqs)
+    lengths = jnp.ceil(Q * fs / freqs)
     for k in range(0, int(n_bins)):
         freq = freqs[k]
-        _l = np.ceil(Q * fs / freq)
+        _l = jnp.ceil(Q * fs / freq)
 
         # Centering the kernels, pad more zeros on RHS
-        start = int(np.ceil(fftLen / 2.0 - _l / 2.0)) - int(_l % 2)
+        start = int(jnp.ceil(fftLen / 2.0 - _l / 2.0)) - int(_l % 2)
 
         sig = (
             get_window_dispatch(window, int(_l), fftbins=True)
-            * np.exp(np.r_[-_l // 2 : _l // 2] * 1j * 2 * np.pi * freq / fs)
+            * jnp.exp(jnp.r_[-_l // 2 : _l // 2] * 1j * 2 * jnp.pi * freq / fs)
             / _l
         )
 
         if norm:  # Normalizing the filter # Trying to normalize like librosa
-            tempKernel[k, start : start + int(_l)] = sig / np.linalg.norm(sig, norm)
+            tempKernel[k, start : start + int(_l)] = sig / jnp.linalg.norm(sig, norm)
         else:
             tempKernel[k, start : start + int(_l)] = sig
 
@@ -194,12 +195,12 @@ def create_cqt_kernels(
 
 
 def get_cqt_complex(
-    x: tf.Tensor,
-    cqt_kernels_real: tf.Tensor,
-    cqt_kernels_imag: tf.Tensor,
+    x: jnp.array,
+    cqt_kernels_real: jnp.array,
+    cqt_kernels_imag: jnp.array,
     hop_length: int,
-    padding: tf.keras.layers.Layer,
-) -> tf.Tensor:
+    padding: nn.Module,
+) -> jnp.array:
     """Multiplying the STFT result with the cqt_kernel, check out the 1992 CQT paper [1]
     for how to multiple the STFT result with the CQT kernel
     [2] Brown, Judith C.C. and Miller Puckette. “An efficient algorithm for the calculation of
@@ -213,30 +214,30 @@ def get_cqt_complex(
             "padding with reflection mode might not be the best choice, try using constant padding",
             UserWarning,
         )
-        x = tf.pad(x, (cqt_kernels_real.shape[-1] // 2, cqt_kernels_real.shape[-1] // 2))
-    CQT_real = tf.transpose(
-        tf.nn.conv1d(
-            tf.transpose(x, [0, 2, 1]),
-            tf.transpose(cqt_kernels_real, [2, 1, 0]),
+        x = jnp.pad(x, (cqt_kernels_real.shape[-1] // 2, cqt_kernels_real.shape[-1] // 2))
+    CQT_real = jnp.transpose(
+        lax.conv(
+            jnp.transpose(x, [0, 2, 1]),
+            jnp.transpose(cqt_kernels_real, [2, 1, 0]),
             padding="VALID",
-            stride=hop_length,
+            window_strides=hop_length,
         ),
         [0, 2, 1],
     )
-    CQT_imag = -tf.transpose(
-        tf.nn.conv1d(
-            tf.transpose(x, [0, 2, 1]),
-            tf.transpose(cqt_kernels_imag, [2, 1, 0]),
+    CQT_imag = -jnp.transpose(
+        lax.conv(
+            jnp.transpose(x, [0, 2, 1]),
+            jnp.transpose(cqt_kernels_imag, [2, 1, 0]),
             padding="VALID",
-            stride=hop_length,
+            window_strides=hop_length,
         ),
         [0, 2, 1],
     )
 
-    return tf.stack((CQT_real, CQT_imag), axis=-1)
+    return jnp.stack((CQT_real, CQT_imag), axis=-1)
 
 
-def downsampling_by_n(x: tf.Tensor, filter_kernel: tf.Tensor, n: float, match_torch_exactly: bool = True) -> tf.Tensor:
+def downsampling_by_n(x: jnp.array, filter_kernel: jnp.array, n: float, match_torch_exactly: bool = True) -> jnp.array:
     """
     Downsample the given tensor using the given filter kernel.
     The input tensor is expected to have shape `(n_batches, channels, width)`,
@@ -252,54 +253,57 @@ def downsampling_by_n(x: tf.Tensor, filter_kernel: tf.Tensor, n: float, match_to
             [0, 0],
             [(filter_kernel.shape[-1] - 1) // 2, (filter_kernel.shape[-1] - 1) // 2],
         ]
-        padded = tf.pad(x, paddings)
+        padded = jnp.pad(x, paddings)
 
         # Store this tensor in the shape `(n_batches, width, channels)`
-        padded_nwc = tf.transpose(padded, [0, 2, 1])
-        result_nwc = tf.nn.conv1d(padded_nwc, filter_kernel[:, None, None], padding="VALID", stride=n)
+        padded_nwc = jnp.transpose(padded, [0, 2, 1])
+        result_nwc = lax.conv(padded_nwc, filter_kernel[:, None, None], padding="VALID", window_strides=n)
     else:
-        x_nwc = tf.transpose(x, [0, 2, 1])
-        result_nwc = tf.nn.conv1d(x_nwc, filter_kernel[:, None, None], padding="SAME", stride=n)
-    result_ncw = tf.transpose(result_nwc, [0, 2, 1])
+        x_nwc = jnp.transpose(x, [0, 2, 1])
+        result_nwc = lax.conv(x_nwc, filter_kernel[:, None, None], padding="SAME", window_strides=n)
+    result_ncw = jnp.transpose(result_nwc, [0, 2, 1])
     return result_ncw
 
 
-class ReflectionPad1D(tf.keras.layers.Layer):
+class ReflectionPad1D(nn.Module):
     """
-    Replica of Torch's nn.ReflectionPad1D in TF.
+    Replica of Torch's nn.ReflectionPad1D in flax.
     """
 
-    def __init__(self, padding: Union[int, Tuple[int]] = 1, **kwargs: Any):
+
+    def setup(self, padding: Union[int, Tuple[int]] = 1, **kwargs: Any):
         self.padding = padding
-        self.input_spec = [tf.keras.layers.InputSpec(ndim=3)]
-        super(ReflectionPad1D, self).__init__(**kwargs)
-
+        # self.input_spec = [tf.keras.layers.InputSpec(ndim=3)] # TODO: can't translate this
+    
     def compute_output_shape(self, s: List[int]) -> Tuple[int, int, int]:
         return (s[0], s[1], s[2] + 2 * self.padding if isinstance(self.padding, int) else self.padding[0])
 
-    def call(self, x: tf.Tensor) -> tf.Tensor:
-        return tf.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], "REFLECT")
+    def __call__(self, x, padding):
+        """
+        Args:
+            x: Tensor of shape (n_batches, channels, width)
+            padding: Tuple of length 2, specifying the padding on each side
+        """
+        return jnp.pad(x, [[0, 0], [0, 0], padding], mode="reflect")
 
-
-class ConstantPad1D(tf.keras.layers.Layer):
+class ConstantPad1D(nn.Module):
     """
-    Replica of Torch's nn.ConstantPad1D in TF.
+    Replica of Torch's nn.ConstantPad1D in flax.
     """
 
-    def __init__(self, padding: Union[int, Tuple[int]] = 1, value: int = 0, **kwargs: Any):
+    def setup(self, padding: Union[int, Tuple[int]] = 1, value: float = 0.0, **kwargs: Any):
         self.padding = padding
         self.value = value
-        self.input_spec = [tf.keras.layers.InputSpec(ndim=3)]
-        super(ConstantPad1D, self).__init__(**kwargs)
+        # self.input_spec = [tf.keras.layers.InputSpec(ndim=3)] # TODO: can't translate this
 
     def compute_output_shape(self, s: List[int]) -> Tuple[int, int, int]:
         return (s[0], s[1], s[2] + 2 * self.padding if isinstance(self.padding, int) else self.padding[0])
+    
+    def __call__(self, x):
+        return jnp.pad(x, [[0, 0], [0, 0], self.padding], mode="constant", constant_values=self.value)
 
-    def call(self, x: tf.Tensor) -> tf.Tensor:
-        return tf.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], "CONSTANT", self.value)
 
-
-def pad_center(data: np.ndarray, size: int, axis: int = -1, **kwargs: Any) -> np.ndarray:
+def pad_center(data: jnp.ndarray, size: int, axis: int = -1, **kwargs: Any) -> jnp.ndarray:
     """Wrapper for np.pad to automatically center an array prior to padding.
     This is analogous to `str.center()`
 
@@ -364,10 +368,10 @@ def pad_center(data: np.ndarray, size: int, axis: int = -1, **kwargs: Any) -> np
     if lpad < 0:
         raise ValueError(("Target size ({:d}) must be at least input size ({:d})").format(size, n))
 
-    return np.pad(data, lengths, **kwargs)
+    return jnp.pad(data, lengths, **kwargs)
 
 
-class CQT2010v2(tf.keras.layers.Layer):
+class CQT2010v2(nn.Module):
     """This layer calculates the CQT of the input signal.
     Input signal should be in either of the following shapes.
     1. (len_audio)
@@ -447,7 +451,7 @@ class CQT2010v2(tf.keras.layers.Layer):
     >>> specs = spec_layer(x)
     """
 
-    def __init__(
+    def setup(
         self,
         sr: int = 22050,
         hop_length: int = 512,
@@ -465,8 +469,6 @@ class CQT2010v2(tf.keras.layers.Layer):
         output_format: str = "Magnitude",
         match_torch_exactly: bool = True,
     ):
-        super().__init__()
-
         self.sample_rate: Union[float, int] = sr
         self.hop_length = hop_length
         self.fmin = fmin
@@ -485,7 +487,9 @@ class CQT2010v2(tf.keras.layers.Layer):
         self.normalization_type = "librosa"
 
     def get_config(self) -> Any:
-        config = super().get_config().copy()
+        config = {}
+        if (super().get_config):
+            config = super().get_config().copy()
         config.update(
             {
                 "sample_rate": self.sample_rate,
@@ -507,7 +511,7 @@ class CQT2010v2(tf.keras.layers.Layer):
         )
         return config
 
-    def build(self, input_shape: tf.TensorShape) -> None:
+    def build(self, input_shape) -> None:
         # This will be used to calculate filter_cutoff and creating CQT kernels
         Q = float(self.filter_scale) / (2 ** (1 / self.bins_per_octave) - 1)
 
@@ -516,7 +520,7 @@ class CQT2010v2(tf.keras.layers.Layer):
         # Calculate num of filter requires for the kernel
         # n_octaves determines how many resampling requires for the CQT
         n_filters = min(self.bins_per_octave, self.n_bins)
-        self.n_octaves = int(np.ceil(float(self.n_bins) / self.bins_per_octave))
+        self.n_octaves = int(jnp.ceil(float(self.n_bins) / self.bins_per_octave))
 
         # Calculate the lowest frequency bin for the top octave kernel
         self.fmin_t = self.fmin * 2 ** (self.n_octaves - 1)
@@ -563,21 +567,21 @@ class CQT2010v2(tf.keras.layers.Layer):
         # The freqs returned by create_cqt_kernels cannot be used
         # Since that returns only the top octave bins
         # We need the information for all freq bin
-        freqs = self.fmin * 2.0 ** (np.r_[0 : self.n_bins] / np.float(self.bins_per_octave))
+        freqs = self.fmin * 2.0 ** (jnp.r_[0 : self.n_bins] / jnp.float(self.bins_per_octave))
         self.frequencies = freqs
 
-        self.lengths = np.ceil(Q * self.sample_rate / freqs)
+        self.lengths = jnp.ceil(Q * self.sample_rate / freqs)
 
         self.basis = basis
         # NOTE(psobot): this is where the implementation here starts to differ from CQT2010.
 
         # These cqt_kernel is already in the frequency domain
-        self.cqt_kernels_real = tf.expand_dims(basis.real.astype(self.dtype), 1)
-        self.cqt_kernels_imag = tf.expand_dims(basis.imag.astype(self.dtype), 1)
+        self.cqt_kernels_real = jnp.expand_dims(basis.real, 1)
+        self.cqt_kernels_imag = jnp.expand_dims(basis.imag, 1)
 
         if self.trainable:
-            self.cqt_kernels_real = tf.Variable(initial_value=self.cqt_kernels_real, trainable=True)
-            self.cqt_kernels_imag = tf.Variable(initial_value=self.cqt_kernels_imag, trainable=True)
+            self.variable("params", "cqt_kernels_real", lambda: self.cqt_kernels_real)
+            self.variable("params", "cqt_kernels_imag", lambda: self.cqt_kernels_imag)
 
         # If center==True, the STFT window will be put in the middle, and paddings at the beginning
         # and ending are required.
@@ -596,7 +600,7 @@ class CQT2010v2(tf.keras.layers.Layer):
         else:
             raise ValueError(f"Input shape must be rank <= 3, found shape {input_shape}")
 
-    def call(self, x: tf.Tensor) -> tf.Tensor:
+    def __call__(self, x: jnp.array) -> jnp.array:
         x = self.reshape_input(x)  # type: ignore
 
         if self.earlydownsample is True:
@@ -613,7 +617,7 @@ class CQT2010v2(tf.keras.layers.Layer):
             hop = hop // 2
             x_down = downsampling_by_n(x_down, self.lowpass_filter, 2, self.match_torch_exactly)
             CQT1 = get_cqt_complex(x_down, self.cqt_kernels_real, self.cqt_kernels_imag, hop, self.padding)
-            CQT = tf.concat((CQT1, CQT), axis=1)
+            CQT = jnp.concatenate((CQT1, CQT), axis=1)
 
         CQT = CQT[:, -self.n_bins :, :]  # Removing unwanted bottom bins
 
@@ -623,7 +627,7 @@ class CQT2010v2(tf.keras.layers.Layer):
 
         # Normalize again to get same result as librosa
         if self.normalization_type == "librosa":
-            CQT *= tf.math.sqrt(tf.cast(self.lengths.reshape((-1, 1, 1)), self.dtype))
+            CQT *= jnp.sqrt(self.lengths.reshape((-1, 1, 1)))
         elif self.normalization_type == "convolutional":
             pass
         elif self.normalization_type == "wrap":
@@ -634,15 +638,15 @@ class CQT2010v2(tf.keras.layers.Layer):
         # Transpose the output to match the output of the other spectrogram layers.
         if self.output_format.lower() == "magnitude":
             # Getting CQT Amplitude
-            return tf.transpose(tf.math.sqrt(tf.math.reduce_sum(tf.math.pow(CQT, 2), axis=-1)), [0, 2, 1])
+            return jnp.transpose(jnp.sqrt(jnp.sum(jnp.square(CQT), axis=-1)), [0, 2, 1])
 
         elif self.output_format.lower() == "complex":
             return CQT
 
         elif self.output_format.lower() == "phase":
-            phase_real = tf.math.cos(tf.math.atan2(CQT[:, :, :, 1], CQT[:, :, :, 0]))
-            phase_imag = tf.math.sin(tf.math.atan2(CQT[:, :, :, 1], CQT[:, :, :, 0]))
-            return tf.stack((phase_real, phase_imag), axis=-1)
+            phase_real = jnp.cos(jnp.arctan2(CQT[:, :, :, 1], CQT[:, :, :, 0]))
+            phase_imag = jnp.sin(jnp.arctan2(CQT[:, :, :, 1], CQT[:, :, :, 0]))
+            return jnp.stack((phase_real, phase_imag), axis=-1)
 
 
 CQT = CQT2010v2

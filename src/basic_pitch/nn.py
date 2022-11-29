@@ -31,7 +31,9 @@ class HarmonicStacking(nn.Module):
         self.n_output_freqs = n_output_freqs
 
     def get_config(self) -> Any:
-        config = super().get_config().copy()
+        config = {}
+        if (super().get_config):
+            config = super().get_config().copy()
         config.update(
             {
                 "bins_per_semitone": self.bins_per_semitone,
