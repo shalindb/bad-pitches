@@ -23,8 +23,10 @@ import pathlib
 import traceback
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-from tensorflow import Tensor, signal, keras, saved_model
-import numpy as np
+
+import jax.numpy as jnp
+import jax.scipy.signal
+from flax import linen as nn
 import librosa
 import pretty_midi
 
@@ -43,20 +45,19 @@ from basic_pitch.commandline_printing import (
 )
 
 
-def window_audio_file(audio_original: Tensor, hop_size: int) -> Tuple[Tensor, List[Dict[str, int]]]:
+def window_audio_file(audio_original: jnp.ndarray, hop_size: int) -> Tuple[jnp.ndarray, List[Dict[str, int]]]:
     """
     Pad appropriately an audio file, and return as
     windowed signal, with window length = AUDIO_N_SAMPLES
 
     Returns:
-        audio_windowed: tensor with shape (n_windows, AUDIO_N_SAMPLES, 1)
+        audio_windowed: ndarray with shape (n_windows, AUDIO_N_SAMPLES, 1)
             audio windowed into fixed length chunks
         window_times: list of {'start':.., 'end':...} objects (times in seconds)
 
     """
-    from tensorflow import expand_dims  # imporing this here so the module loads faster
 
-    audio_windowed = expand_dims(
+    audio_windowed = jnp.expand_dims(
         signal.frame(audio_original, AUDIO_N_SAMPLES, hop_size, pad_end=True, pad_value=0),
         axis=-1,
     )
@@ -65,20 +66,20 @@ def window_audio_file(audio_original: Tensor, hop_size: int) -> Tuple[Tensor, Li
             "start": t_start,
             "end": t_start + (AUDIO_N_SAMPLES / AUDIO_SAMPLE_RATE),
         }
-        for t_start in np.arange(audio_windowed.shape[0]) * hop_size / AUDIO_SAMPLE_RATE
+        for t_start in jnp.arange(audio_windowed.shape[0]) * hop_size / AUDIO_SAMPLE_RATE
     ]
     return audio_windowed, window_times
 
 
 def get_audio_input(
     audio_path: Union[pathlib.Path, str], overlap_len: int, hop_size: int
-) -> Tuple[Tensor, List[Dict[str, int]], int]:
+) -> Tuple[jnp.ndarray, List[Dict[str, int]], int]:
     """
     Read wave file (as mono), pad appropriately, and return as
     windowed signal, with window length = AUDIO_N_SAMPLES
 
     Returns:
-        audio_windowed: tensor with shape (n_windows, AUDIO_N_SAMPLES, 1)
+        audio_windowed: ndarray with shape (n_windows, AUDIO_N_SAMPLES, 1)
             audio windowed into fixed length chunks
         window_times: list of {'start':.., 'end':...} objects (times in seconds)
         audio_original_length: int
@@ -90,12 +91,12 @@ def get_audio_input(
     audio_original, _ = librosa.load(str(audio_path), sr=AUDIO_SAMPLE_RATE, mono=True)
 
     original_length = audio_original.shape[0]
-    audio_original = np.concatenate([np.zeros((int(overlap_len / 2),), dtype=np.float32), audio_original])
+    audio_original = jnp.concatenate([jnp.zeros((int(overlap_len / 2),), dtype=jnp.float32), audio_original])
     audio_windowed, window_times = window_audio_file(audio_original, hop_size)
     return audio_windowed, window_times, original_length
 
 
-def unwrap_output(output: Tensor, audio_original_length: int, n_overlapping_frames: int) -> np.array:
+def unwrap_output(output: jnp.ndarray, audio_original_length: int, n_overlapping_frames: int) -> jnp.array:
     """Unwrap batched model predictions to a single matrix.
 
     Args:
@@ -116,16 +117,16 @@ def unwrap_output(output: Tensor, audio_original_length: int, n_overlapping_fram
         raw_output = raw_output[:, n_olap:-n_olap, :]
 
     output_shape = raw_output.shape
-    n_output_frames_original = int(np.floor(audio_original_length * (ANNOTATIONS_FPS / AUDIO_SAMPLE_RATE)))
+    n_output_frames_original = int(jnp.floor(audio_original_length * (ANNOTATIONS_FPS / AUDIO_SAMPLE_RATE)))
     unwrapped_output = raw_output.reshape(output_shape[0] * output_shape[1], output_shape[2])
     return unwrapped_output[:n_output_frames_original, :]  # trim to original audio length
 
 
 def run_inference(
     audio_path: Union[pathlib.Path, str],
-    model: keras.Model,
+    model: nn.Module,
     debug_file: Optional[pathlib.Path] = None,
-) -> Dict[str, np.array]:
+) -> Dict[str, jnp.array]:
     """Run the model on the input audio path.
 
     Args:
@@ -254,15 +255,27 @@ def save_note_events(
         writer = csv.writer(fhandle, delimiter=",")
         writer.writerow(["start_time_s", "end_time_s", "pitch_midi", "velocity", "pitch_bend"])
         for start_time, end_time, note_number, amplitude, pitch_bend in note_events:
-            row = [start_time, end_time, note_number, int(np.round(127 * amplitude))]
+            row = [start_time, end_time, note_number, int(jnp.round(127 * amplitude))]
             if pitch_bend:
                 row.extend(pitch_bend)
             writer.writerow(row)
 
+### my attempts at utilizing this link (https://flax.readthedocs.io/en/latest/guides/transfer_learning.html?highlight=load%20model#transfer-the-parameters) ###
+from IPython.display import clear_output
+from transformers import FlaxCLIPModel
+
+# Note: FlaxCLIPModel is not a Flax Module
+def load_model(model_path):
+  clip = FlaxCLIPModel.from_pretrained(model_path)
+  clear_output(wait=False) # Clear the loading messages
+  module = clip.module # Extract the Flax Module
+  variables = {'params': clip.params} # Extract the parameters
+  return module, variables
+
 
 def predict(
     audio_path: Union[pathlib.Path, str],
-    model_or_model_path: Union[keras.Model, pathlib.Path, str] = ICASSP_2022_MODEL_PATH,
+    model_or_model_path: Union[nn.Module, pathlib.Path, str] = ICASSP_2022_MODEL_PATH,
     onset_threshold: float = 0.5,
     frame_threshold: float = 0.3,
     minimum_note_length: float = 58,
@@ -271,7 +284,7 @@ def predict(
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     debug_file: Optional[pathlib.Path] = None,
-) -> Tuple[Dict[str, np.array], pretty_midi.PrettyMIDI, List[Tuple[float, float, int, float, Optional[List[int]]]],]:
+) -> Tuple[Dict[str, jnp.array], pretty_midi.PrettyMIDI, List[Tuple[float, float, int, float, Optional[List[int]]]],]:
     """Run a single prediction.
 
     Args:
@@ -294,14 +307,14 @@ def predict(
         # someone wants to place this function in a loop,
         # the model doesn't have to be reloaded every function call
         if isinstance(model_or_model_path, (pathlib.Path, str)):
-            model = saved_model.load(str(model_or_model_path))
+            model, _ = load_model(str(model_or_model_path))
         else:
             model = model_or_model_path
 
         print(f"Predicting MIDI for {audio_path}...")
 
         model_output = run_inference(audio_path, model, debug_file)
-        min_note_len = int(np.round(minimum_note_length / 1000 * (AUDIO_SAMPLE_RATE / FFT_HOP)))
+        min_note_len = int(jnp.round(minimum_note_length / 1000 * (AUDIO_SAMPLE_RATE / FFT_HOP)))
         midi_data, note_events = infer.model_output_to_notes(
             model_output,
             onset_thresh=onset_threshold,
@@ -378,7 +391,7 @@ def predict_and_save(
         debug_file: An optional path to output debug data to. Useful for testing/verification.
         sonification_samplerate: Sample rate for rendering audio from MIDI.
     """
-    model = saved_model.load(str(model_path))
+    model, _ = load_model(str(model_path))
 
     for audio_path in audio_path_list:
         print("")
@@ -399,7 +412,7 @@ def predict_and_save(
             if save_model_outputs:
                 model_output_path = build_output_path(audio_path, output_directory, OutputExtensions.MODEL_OUTPUT_NPZ)
                 try:
-                    np.savez(model_output_path, basic_pitch_model_output=model_output)
+                    jnp.savez(model_output_path, basic_pitch_model_output=model_output)
                     file_saved_confirmation(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
                 except Exception:
                     failed_to_save(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
