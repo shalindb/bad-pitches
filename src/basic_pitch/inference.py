@@ -44,6 +44,7 @@ from basic_pitch.commandline_printing import (
     failed_to_save,
 )
 
+from basic_pitch.layers.utils import frame # equivalent of tf.signal.frame
 
 def window_audio_file(audio_original: jnp.ndarray, hop_size: int) -> Tuple[jnp.ndarray, List[Dict[str, int]]]:
     """
@@ -58,7 +59,7 @@ def window_audio_file(audio_original: jnp.ndarray, hop_size: int) -> Tuple[jnp.n
     """
 
     audio_windowed = jnp.expand_dims(
-        signal.frame(audio_original, AUDIO_N_SAMPLES, hop_size, pad_end=True, pad_value=0),
+        frame(audio_original, AUDIO_N_SAMPLES, hop_size, pad_end=True, pad_value=0),
         axis=-1,
     )
     window_times = [
