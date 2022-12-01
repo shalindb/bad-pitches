@@ -38,7 +38,7 @@ Recall that a convolutional kernel in image contexts involves calculating the su
 
     \subpart For ConvNets, are median filters similar to convolutional layers? Are they still useful? Why or why not?
 
-    \answer{Median filters are not similar to convolutional layers, because they do not learn weights. In this sense, they are more similar to pooling layers. However, they can still be useful, because they can be used to denoise images.}
+    \answer{Median filters are not similar to convolutional layers, because they do not have learnable parameters. In this sense, they are more similar to pooling layers. However, they can certainly still be useful because of their denoising capabilities.}
 
     \subpart Let $K \times K$ denote filter size, $P$ padding size, $S$ stride length, and suppose we are operating on an image of size $H \times W$. What is the runtime complexity of convolution? How about median filtering? Assume no results are cached across different pixels.
 

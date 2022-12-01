@@ -1,7 +1,7 @@
 # Fdb version 3
-["pdflatex"] 1669893261 "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/analytical-solution/main.tex" "main.pdf" "main" 1669893264
+["pdflatex"] 1669893393 "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/analytical-solution/main.tex" "main.pdf" "main" 1669893396
   "box_blur.png" 1669888873 16014 fd02aebf4b6a7c97fb8124adb4d8fa1b ""
-  "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/analytical-solution/main.tex" 1669893257 3293 7b30366b3659a9d7589066f4ff4433c7 ""
+  "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/analytical-solution/main.tex" 1669893393 3311 78168580188ec6db2d563280363ff3d3 ""
   "c:/texlive/2021/texmf-dist/fonts/map/fontname/texfonts.map" 1648614084 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "c:/texlive/2021/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1648611085 1004 54797486969f23fa377b128694d548df ""
   "c:/texlive/2021/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1648611085 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -277,9 +277,9 @@
   "c:/texlive/2021/texmf-var/web2c/pdftex/pdflatex.fmt" 1648620887 2826093 cf05830ad13569ef02c672353f0df60f ""
   "c:/texlive/2021/texmf.cnf" 1648620724 713 e69b156964470283e0530f5060668171 ""
   "cs170.sty" 1669885771 7949 1b5c585d64157f40e02c4d5cbe052f5b ""
-  "main.aux" 1669893264 920 9dd10e761aac2ad9f2c1aa11c9070089 "pdflatex"
-  "main.out" 1669893264 292 5d4b5f3ef0c125ca571caf919cb276e4 "pdflatex"
-  "main.tex" 1669893257 3293 7b30366b3659a9d7589066f4ff4433c7 ""
+  "main.aux" 1669893396 920 9dd10e761aac2ad9f2c1aa11c9070089 "pdflatex"
+  "main.out" 1669893396 292 5d4b5f3ef0c125ca571caf919cb276e4 "pdflatex"
+  "main.tex" 1669893393 3311 78168580188ec6db2d563280363ff3d3 ""
   "median_filtered.png" 1669889645 16222 fc1cdcf4feaafee2197500be75f1193b ""
   "orig.png" 1669888856 20853 b575f73d5bcb6ef70c9e9f280614bee0 ""
   (generated)
