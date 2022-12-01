@@ -76,6 +76,7 @@ class Stft(nn.Module):
             x=self.spec(inputs),
             nperseg=self.fft_length,
             # in tf, frame_step=number of samples to step=self.hop_length but what is the equivalent for scipy???
+            noverlap=self.hop_length, # this is my guess
             nfft=self.fft_length,
             window=self.final_window_fn,
             padded=self.pad_end,
