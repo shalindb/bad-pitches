@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional
 import jax.numpy as jnp
 import jax.scipy.signal
 from flax import linen as nn
-from utils import LambdaLayer
+from basic_pitch.layers.utils import LambdaLayer
 
 
 class Stft(nn.Module):

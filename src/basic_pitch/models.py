@@ -18,12 +18,13 @@
 from typing import Any, Callable, Dict
 # import numpy as np
 
+import jax
 import jax.numpy as jnp
 from flax import linen
 import optax
 
 
-from basic_pitch import nn
+from basic_pitch import nn #as bpnn; TODO: change to bpnn
 from basic_pitch.constants import (
     ANNOTATIONS_BASE_FREQUENCY,
     ANNOTATIONS_N_SEMITONES,
@@ -35,7 +36,7 @@ from basic_pitch.constants import (
 )
 from basic_pitch.layers import signal, nnaudio
 
-jxln = linen
+jxln = linen # TODO: change jxln back to nn. 
 # tfkl = tf.keras.layers
 # tfkl = nn.Module
 
@@ -154,12 +155,12 @@ def loss(label_smoothing: float = 0.2, weighted: bool = False, positive_weight: 
         "onset": loss_onset,
     }
 
-def _initializer() -> jxln.Initializer:
+def _initializer() -> jax.nn.initializers.Initializer:
     return jxln.initializers.variance_scaling(scale=2.0, mode="fan_avg", distribution="uniform")
 
 # TODO: unclear if there is an obvious replication in JAX
-def _kernel_constraint() -> tf.keras.constraints.UnitNorm:
-    return tf.keras.constraints.UnitNorm(axis=[0, 1, 2])
+#def _kernel_constraint() -> tf.keras.constraints.UnitNorm:
+#    return tf.keras.constraints.UnitNorm(axis=[0, 1, 2])
 
 
 def get_cqt(inputs: jnp.ndarray, n_harmonics: int, use_batchnorm: bool) -> jnp.ndarray:
@@ -178,12 +179,20 @@ def get_cqt(inputs: jnp.ndarray, n_harmonics: int, use_batchnorm: bool) -> jnp.n
         The log-normalized CQT of the input audio.
     """
     n_semitones = jnp.min(
-        [
+        jnp.asarray([
             int(jnp.ceil(12.0 * jnp.log2(n_harmonics)) + ANNOTATIONS_N_SEMITONES),
             MAX_N_SEMITONES,
-        ]
+        ])
     )
     x = nn.FlattenAudioCh()(inputs)
+    model = nnaudio.CQT(
+        sr=AUDIO_SAMPLE_RATE,
+        hop_length=FFT_HOP,
+        fmin=ANNOTATIONS_BASE_FREQUENCY,
+        n_bins=n_semitones * CONTOURS_BINS_PER_SEMITONE,
+        bins_per_octave=12 * CONTOURS_BINS_PER_SEMITONE,
+    )
+    model.init()
     x = nnaudio.CQT(
         sr=AUDIO_SAMPLE_RATE,
         hop_length=FFT_HOP,
@@ -206,7 +215,7 @@ def model(
     n_filters_onsets: int = 32,
     n_filters_notes: int = 32,
     no_contours: bool = False,
-) -> nn.Module:
+) -> jxln.Module:
     """Basic Pitch's model implementation.
 
     Args:
@@ -218,7 +227,7 @@ def model(
     """
     # input representation
     # inputs = tf.keras.Input(shape=(AUDIO_N_SAMPLES, 1))  # (batch, time, ch)
-    inputs = jnp.zeros(shape=(AUDIO_N_SAMPLES, 1)) 
+    inputs = jnp.zeros((3, AUDIO_N_SAMPLES, 1))
     x = get_cqt(inputs, n_harmonics, True)
 
     if n_harmonics > 1:
@@ -327,4 +336,4 @@ def model(
 
     outputs = {"onset": x_onset, "contour": x_contours, "note": x_notes}
 
-    return nn.Module(inputs=inputs, outputs=outputs) # TODO: is this correct? 
+    return jxln.Module(inputs=inputs, outputs=outputs) # TODO: is this correct? 

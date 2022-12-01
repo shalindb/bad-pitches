@@ -59,6 +59,7 @@ def create_lowpass_filter(
     # This command produces the filter kernel coefficients
     filter_kernel = scipy.signal.firwin2(kernel_length, key_frequencies, gain_at_key_frequencies)
 
+    print(f"Filter kernel: {jnp.array(filter_kernel, dtype=dtype)}")
     return jnp.array(filter_kernel, dtype=dtype)
 
 
@@ -101,12 +102,13 @@ def get_early_downsample_params(
     sr: Union[float, int], hop_length: int, fmax_t: float, Q: float, n_octaves: int, dtype: jnp.dtype
 ) -> Tuple[Union[float, int], int, float, jnp.array, bool]:
     """Compute downsampling parameters used for early downsampling"""
-
+    print("setting early downsampling parameters")
     window_bandwidth = 1.5  # for hann window
     filter_cutoff = fmax_t * (1 + 0.5 * window_bandwidth / Q)
     sr, hop_length, downsample_factor = early_downsample(sr, hop_length, n_octaves, sr // 2, filter_cutoff)
     if downsample_factor != 1:
         earlydownsample = True
+        print("creating downsample filter")
         early_downsample_filter = create_lowpass_filter(
             band_center=1 / downsample_factor,
             kernel_length=256,
@@ -370,7 +372,6 @@ def pad_center(data: jnp.ndarray, size: int, axis: int = -1, **kwargs: Any) -> j
 
     return jnp.pad(data, lengths, **kwargs)
 
-
 class CQT2010v2(nn.Module):
     """This layer calculates the CQT of the input signal.
     Input signal should be in either of the following shapes.
@@ -450,42 +451,29 @@ class CQT2010v2(nn.Module):
     >>> spec_layer = Spectrogram.CQT2010v2()
     >>> specs = spec_layer(x)
     """
+    sr: int = 22050
+    hop_length: int = 512
+    fmin: float = 32.70
+    fmax: Optional[float] = None
+    n_bins: int = 84
+    filter_scale: int = 1
+    bins_per_octave: int = 12
+    norm: bool = True
+    basis_norm: int = 1
+    window: str = "hann"
+    pad_mode: str = "reflect"
+    earlydownsample: bool = True
+    trainable: bool = False
+    output_format: str = "Magnitude"
+    match_torch_exactly: bool = True
+    normalization_type = "librosa"
+    reshape_input: callable = lambda x: x
+    early_downsample_filter: jnp.ndarray = None
+    downsample_factor = None
 
-    def setup(
-        self,
-        sr: int = 22050,
-        hop_length: int = 512,
-        fmin: float = 32.70,
-        fmax: Optional[float] = None,
-        n_bins: int = 84,
-        filter_scale: int = 1,
-        bins_per_octave: int = 12,
-        norm: bool = True,
-        basis_norm: int = 1,
-        window: str = "hann",
-        pad_mode: str = "reflect",
-        earlydownsample: bool = True,
-        trainable: bool = False,
-        output_format: str = "Magnitude",
-        match_torch_exactly: bool = True,
-    ):
-        self.sample_rate: Union[float, int] = sr
-        self.hop_length = hop_length
-        self.fmin = fmin
-        self.fmax = fmax
-        self.n_bins = n_bins
-        self.filter_scale = filter_scale
-        self.bins_per_octave = bins_per_octave
-        self.norm = norm
-        self.basis_norm = basis_norm
-        self.window = window
-        self.pad_mode = pad_mode
-        self.earlydownsample = earlydownsample
-        self.trainable = trainable
-        self.output_format = output_format
-        self.match_torch_exactly = match_torch_exactly
-        self.normalization_type = "librosa"
-
+    def setup(self):
+        self.sample_rate = self.sr
+        
     def get_config(self) -> Any:
         config = {}
         if (super().get_config):
@@ -511,7 +499,7 @@ class CQT2010v2(nn.Module):
         )
         return config
 
-    def build(self, input_shape) -> None:
+    def init(self, input_shape) -> None:
         # This will be used to calculate filter_cutoff and creating CQT kernels
         Q = float(self.filter_scale) / (2 ** (1 / self.bins_per_octave) - 1)
 
@@ -540,6 +528,7 @@ class CQT2010v2(nn.Module):
             )
 
         if self.earlydownsample is True:  # Do early downsampling if this argument is True
+            print("Early downsampling is enabled")
             (
                 self.sample_rate,
                 self.hop_length,
@@ -550,6 +539,7 @@ class CQT2010v2(nn.Module):
 
             self.early_downsample_filter = early_downsample_filter
         else:
+            print("Early downsampling is disabled")
             self.downsample_factor = 1.0
 
         # Preparing CQT kernels
