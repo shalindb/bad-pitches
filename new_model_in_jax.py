@@ -1,13 +1,29 @@
 import jax 
-import jax.numpy as jnp
+import haiku as hk
 
-
-# basic outline:
-# step 1: constant q stacking
-# step 2: harmonic stacking
+# basic outline: 
+# step 1: constant q stacking # Eran?
+# step 2: harmonic stacking # Eran?
  
 
-# def onset_posteriogram_model:
+
+class Posteriogram_Model(nn.Sequential):
+    # define blocks here:
+    # 
+
+
+
+    # define all model layers here as attributes
+
+
+
+    def forward
+
+
+
+
+
+def onset_posteriogram_model(audio): # Shalin, me
 # def right_prong_up_to_concat():
 # # step 3: 32-depth Conv2D (5x5), stride 1x3
     # step 4: batch norm
@@ -35,4 +51,4 @@ import jax.numpy as jnp
     # 1 Conv 2D 7 x 3
     # sigmoid
     # return output
-    
+
