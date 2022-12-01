@@ -1,0 +1,47 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{cs170}
+
+\def\title{}
+\def\duedate{INSERT DUE DATE}
+
+
+\begin{document}
+\question{Median Filtering}
+
+Recall that a convolutional kernel in image contexts involves calculating the sum of the elementwise products of the kernel with a window of pixels in the image. The kernel is then "slid" over the image, repeating this process for every pixel in the image.
+
+\begin{subparts}
+    \subpart Consider the following 3x3 kernel:
+    $$\frac{1}{9} \begin{bmatrix}
+    1 & 1 & 1 \\
+    1 & 1 & 1 \\
+    1 & 1 & 1
+    \end{bmatrix}$$
+
+    This is often referred to as a "box-blur" kernel. Why does it have a blurring effect? 
+    \subpart Now consider a related technique, known as \emph{median filtering}. Here, for a given window of pixels, the center pixel is replaced with the median of the pixels in the window. This process is then repeated across the entire image, just as is done with convolution.
+    
+    For your curiosity, depicted below are the results of applying 3x3 filters to an image (original left, box-blur center, median right):
+    \begin{figure}[h] \centering
+        \includegraphics[width=0.3\textwidth]{orig.png}
+        \includegraphics[width=0.3\textwidth]{box_blur.png}
+        \includegraphics[width=0.3\textwidth]{median_filtered.png}
+    \end{figure}
+
+    Can you think of a scenario where median filtering would be preferable to box-blur filtering? What about the other way around?
+
+    \subpart For ConvNets, are median filters similar to convolutional layers? Are they useful? Why or why not?
+
+    \subpart Let $K \times K$ denote filter size, $P$ padding size, $S$ stride length, and suppose we are operating on an image of size $H \times W \times C$. What is the computational complexity of convolution? How about median filtering? Assume no results are cached across different pixels.
+
+    \emph{Hint: We can find the median of $n$ numbers in $O(n)$ time.}
+
+\end{subparts}
+
+\newpage
+
+\question{Cross-Entropy Investigation}
+	hello
+
+\end{document}
