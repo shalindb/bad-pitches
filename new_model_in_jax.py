@@ -7,9 +7,10 @@ import haiku as hk
  
 
 
-class Posteriogram_Model(nn.Sequential):
+class Posteriogram_Model(hk.Module):
     # define blocks here:
     # 
+    
 
 
 
@@ -17,12 +18,14 @@ class Posteriogram_Model(nn.Sequential):
 
 
 
-    def forward
+    def forward():
 
 
 
 
+class Onset_Post(hk.Module):
 
+    
 def onset_posteriogram_model(audio): # Shalin, me
 # def right_prong_up_to_concat():
 # # step 3: 32-depth Conv2D (5x5), stride 1x3
