@@ -178,7 +178,6 @@ def get_cqt_complex(
     for how to multiple the STFT result with the CQT kernel
     [2] Brown, Judith C.C. and Miller Puckette. “An efficient algorithm for the calculation of
     a constant Q transform.” (1992)."""
-
     try:
         x = padding(x)  # When center is True, we need padding at the beginning and ending
     except Exception:
@@ -188,25 +187,27 @@ def get_cqt_complex(
             UserWarning,
         )
         x = jnp.pad(x, (cqt_kernels_real.shape[-1] // 2, cqt_kernels_real.shape[-1] // 2))
+
     CQT_real = jnp.transpose(
-        lax.conv(
+        lax.conv_general_dilated(
             jnp.transpose(x, [0, 2, 1]),
             jnp.transpose(cqt_kernels_real, [2, 1, 0]),
             padding="VALID",
-            window_strides=hop_length,
+            window_strides=[hop_length for _ in range(x.ndim)],
         ),
         [0, 2, 1],
     )
+    print("built real")
     CQT_imag = -jnp.transpose(
         lax.conv(
             jnp.transpose(x, [0, 2, 1]),
             jnp.transpose(cqt_kernels_imag, [2, 1, 0]),
             padding="VALID",
-            window_strides=hop_length,
+            window_strides=[hop_length for _ in range(x.ndim)],
         ),
         [0, 2, 1],
     )
-
+    print("built imag")
     return jnp.stack((CQT_real, CQT_imag), axis=-1)
 
 
@@ -248,7 +249,7 @@ class ReflectionPad1D(hk.Module):
         self.padding = padding
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
-        return jnp.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], "REFLECT")
+        return jnp.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], mode="reflect")
 
 
 class ConstantPad1D(hk.Module):
@@ -261,8 +262,8 @@ class ConstantPad1D(hk.Module):
         self.padding = padding
         self.value = value
 
-    def call(self, x: jnp.ndarray) -> jnp.ndarray:
-        return jnp.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], "CONSTANT", self.value)
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+        return jnp.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], mode="constant", constant_values=self.value)
 
 
 class CQTLayer(hk.Module):
@@ -306,6 +307,7 @@ class CQTLayer(hk.Module):
         # This will be used to calculate filter_cutoff and creating CQT kernels
         Q = float(self.filter_scale) / (2 ** (1 / self.bins_per_octave) - 1)
 
+        print("creating lowpass filter")
         self.lowpass_filter = create_lowpass_filter(band_center=0.5, kernel_length=256, transition_bandwidth=0.001)
 
         # Calculate num of filter requires for the kernel
@@ -331,6 +333,7 @@ class CQTLayer(hk.Module):
             )
 
         if self.earlydownsample is True:  # Do early downsampling if this argument is True
+            print("early downsampling")
             (
                 self.sample_rate,
                 self.hop_length,
@@ -338,11 +341,12 @@ class CQTLayer(hk.Module):
                 early_downsample_filter,
                 self.earlydownsample,
             ) = get_early_downsample_params(self.sample_rate, self.hop_length, fmax_t, Q, self.n_octaves)
-
+            print("done setting params")
             self.early_downsample_filter = early_downsample_filter
         else:
             self.downsample_factor = 1.0
 
+        print("creating CQT kernels")
         # Preparing CQT kernels
         basis, self.n_fft, _, _ = create_cqt_kernels(
             Q,
@@ -366,16 +370,19 @@ class CQTLayer(hk.Module):
         self.basis = basis
         # NOTE(psobot): this is where the implementation here starts to differ from CQT2010.
 
+        print("expand dims")
         # These cqt_kernel is already in the frequency domain
         self.cqt_kernels_real = jnp.expand_dims(basis.real, 1)
         self.cqt_kernels_imag = jnp.expand_dims(basis.imag, 1)
 
         if self.trainable:
+            print("create params")
             self.cqt_kernels_real = hk.get_parameter("cqt_kernels_real", self.cqt_kernels_real.shape, init=self.cqt_kernels_real)
             self.cqt_kernels_imag = hk.get_parameter("cqt_kernels_imag", self.cqt_kernels_imag.shape, init=self.cqt_kernels_imag)
 
         # If center==True, the STFT window will be put in the middle, and paddings at the beginning
         # and ending are required.
+        print("create padding layer")
         if self.pad_mode == "constant":
             self.padding = ConstantPad1D(self.n_fft // 2, 0)
         elif self.pad_mode == "reflect":
@@ -393,29 +400,32 @@ class CQTLayer(hk.Module):
     
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         x = self.reshape_input(x)  # type: ignore
+        print("inside call")
 
         if self.earlydownsample is True:
+            print("early downsampling")
             x = downsampling_by_n(x, self.early_downsample_filter, self.downsample_factor, self.match_torch_exactly)
 
         hop = self.hop_length
 
         # Getting the top octave CQT
+        print("getting cqt")
         CQT = get_cqt_complex(x, self.cqt_kernels_real, self.cqt_kernels_imag, hop, self.padding)
 
         x_down = x  # Preparing a new variable for downsampling
-
+        print("looping")
         for _ in range(self.n_octaves - 1):
             hop = hop // 2
             x_down = downsampling_by_n(x_down, self.lowpass_filter, 2, self.match_torch_exactly)
             CQT1 = get_cqt_complex(x_down, self.cqt_kernels_real, self.cqt_kernels_imag, hop, self.padding)
             CQT = jnp.concatenate((CQT1, CQT), axis=1)
-
+        print("done looping")
         CQT = CQT[:, -self.n_bins :, :]  # Removing unwanted bottom bins
 
         # Normalizing the output with the downsampling factor, 2**(self.n_octaves-1) is make it
         # same mag as 1992
         CQT = CQT * self.downsample_factor
-
+        print("normalizing")
         # Normalize again to get same result as librosa
         if self.normalization_type == "librosa":
             CQT *= jnp.sqrt(self.lengths.reshape((-1, 1, 1)))
@@ -429,6 +439,7 @@ class CQTLayer(hk.Module):
         # Transpose the output to match the output of the other spectrogram layers.
         if self.output_format.lower() == "magnitude":
             # Getting CQT Amplitude
+            print("getting magnitude")
             return jnp.transpose(jnp.sqrt(jnp.sum(jnp.square(CQT), axis=-1)), [0, 2, 1])
 
         elif self.output_format.lower() == "complex":
