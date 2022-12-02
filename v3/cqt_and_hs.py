@@ -26,4 +26,5 @@ def harmonic_stacking(x, bins_per_semitone=1, harmonics=harmonics, n_output_freq
 def load_and_cqt(audio_path, sr=22050, hop_length=512, bins_per_octave=12, n_bins=84):
     audio, _ = librosa.load(audio_path, sr=sr)
     cqt = librosa.cqt(audio.reshape(1, audio.shape[0]), sr=sr, hop_length=hop_length, bins_per_octave=bins_per_octave, n_bins=n_bins)
+    cqt = jnp.abs(cqt)
     return jnp.expand_dims(jnp.array(cqt), axis=-1)
