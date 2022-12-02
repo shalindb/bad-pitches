@@ -1,8 +1,9 @@
 import jax.numpy as jnp
 import librosa
+from constants import *
 
 harmonics = jnp.array([0.5] + list(range(1, 8)))
-def harmonic_stacking(x, bins_per_semitone=1, harmonics=harmonics, n_output_freqs=1):
+def harmonic_stacking(x, bins_per_semitone=CONTOURS_BINS_PER_SEMITONE, harmonics=harmonics, n_output_freqs=N_FREQ_BINS_CONTOURS):
     """Downsample frequency by stride, upsample channels by 4."""
     shifts = [int(jnp.round(12.0 * bins_per_semitone * jnp.log2(float(h)))) for h in harmonics]
     channels = []
