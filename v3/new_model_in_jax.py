@@ -32,6 +32,11 @@ class TopBranch(hk.Module):
         return x
 
     def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_4"] = conv32_5_5(x)
+        vd["batch_normalization_3"] = bn
+        vd["conv2d_5"] = ???
+        """
         pass
 
 class YpBranch(hk.Module):
@@ -55,6 +60,11 @@ class YpBranch(hk.Module):
         return x
 
     def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_1"] = conv8_3_39
+        vd["batch_normalization_2"] = bn2
+        vd["contours-reduced"]] = conv_1_5_5
+        """
         pass
 
 class YnBranch(hk.Module):
@@ -69,6 +79,12 @@ class YnBranch(hk.Module):
         x = self.conv1_7_3(x)
         x = jax.nn.sigmoid(x)
         return x
+    def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_2"] =  conv32_7_7
+        vd["conv2d_3"] = conv1_7_3
+        """
+        pass
 
 class YoBranch(hk.Module):
     def __init__(self, name: Optional[str] = None):
@@ -81,6 +97,9 @@ class YoBranch(hk.Module):
         return x
 
     def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_5"] = conv1_3_3
+        """
         pass
     
 class PosteriorgramModel(hk.Module):
@@ -132,5 +151,6 @@ class PosteriorgramModel(hk.Module):
         self.yp_branch.load_weights(yp_vars)
         self.yn_branch.load_weights(yn_vars)
         self.top_branch.load_weights(top_vars)
+        self.yo_branch.load_weights(top_vars)
 
 
