@@ -18,7 +18,9 @@ def smoothed_bce_loss(y_true: jnp.ndarray, y_pred: jnp.ndarray, label_smoothing:
     if label_smoothing > 0:
         y_pred = optax.smooth_labels(y_pred, label_smoothing)
 
-    bce = optax.softmax_cross_entropy(y_pred, y_true)
+    # bce = optax.softmax_cross_entropy(y_pred, y_true)
+    bce = optax.sigmoid_binary_cross_entropy(y_pred, y_true)
+    # bce = optax.safe_root_mean_squares(y_pred, y_true)
     return bce
 
 

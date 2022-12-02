@@ -7,7 +7,7 @@ from cqt_and_hs import harmonic_stacking, load_and_cqt
 from new_model_in_jax import PosteriorgramModel
 
 def main():
-    audio_path = "test.m4a"
+    audio_path = "v3/test.m4a"
     audio_tensor = load_and_cqt(audio_path)
 
     def new_f(audio_tensor, is_training):
@@ -22,10 +22,11 @@ def main():
     params, state = model.init(rng, audio_tensor, True)
     out, state = model.apply(params, state, rng=rng, audio_tensor=audio_tensor, is_training=True)
 
-    noisy_audio = audio_tensor + 1000 #jax.random.normal(rng, audio_tensor.shape) * 1000
+    # print(jax.random.normal(rng, audio_tensor.shape))
+    noisy_audio = audio_tensor + jax.random.normal(rng, audio_tensor.shape)
 
     epochs = 1000
-    learning_rate = jnp.array(0.001)
+    learning_rate = jnp.array(0.01)
 
     def UpdateWeights(weights,gradients):
         return weights - learning_rate * gradients
