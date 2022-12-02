@@ -26,7 +26,7 @@ class TopBranch(hk.Module):
         self.bn = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn")
         
     def __call__(self, x: jnp.ndarray, is_training: bool) -> jnp.ndarray:
-        x = self.conv(x)
+        x = self.conv32_5_5(x)
         x = self.bn(x, is_training=is_training)
         x = jax.nn.relu(x)
         return x
