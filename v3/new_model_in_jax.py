@@ -23,11 +23,11 @@ class TopBranch(hk.Module):
     def __init__(self, name: Optional[str] = None):
         super().__init__(name=name)
         self.conv32_5_5 = hk.Conv2D(32, (5, 5), stride=(1, 3), name="conv32_5_5")
-        # self.bn = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn")
+        self.bn = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn")
         
     def __call__(self, x: jnp.ndarray, is_training: bool) -> jnp.ndarray:
         x = self.conv32_5_5(x)
-        # x = self.bn(x, is_training=is_training)
+        x = self.bn(x, is_training=is_training)
         x = jax.nn.relu(x)
         return x
 
