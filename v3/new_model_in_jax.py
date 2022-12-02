@@ -31,6 +31,9 @@ class TopBranch(hk.Module):
         x = jax.nn.relu(x)
         return x
 
+    def load_weights(self, var_dict: dict):
+        pass
+
 class YpBranch(hk.Module):
     def __init__(self, name: Optional[str] = None):
         super().__init__(name=name)
@@ -50,6 +53,9 @@ class YpBranch(hk.Module):
         x = self.conv_1_5_5(x)
         x = jax.nn.sigmoid(x)
         return x
+
+    def load_weights(self, var_dict: dict):
+        pass
 
 class YnBranch(hk.Module):
     def __init__(self, name: Optional[str] = None):
@@ -73,6 +79,9 @@ class YoBranch(hk.Module):
         x = self.conv1_3_3(x)
         x = jax.nn.sigmoid(x)
         return x
+
+    def load_weights(self, var_dict: dict):
+        pass
     
 class PosteriorgramModel(hk.Module):
 
@@ -92,3 +101,36 @@ class PosteriorgramModel(hk.Module):
         concat = jax.numpy.concatenate([top, yn], axis=-1) 
         yo = self.yo_branch(concat)
         return yp, yn, yo
+
+    
+    def load_weights(self, model_dict):
+        variable_dict = {}
+        for elem in model_dict: # store all elements by name
+            var_name = elem._handle_name.split("/")[0]
+            if var_name in variable_dict:
+                variable_dict[var_name].append(elem)
+            else:
+                variable_dict[var_name] = [elem]
+        
+        # pass along variables to each branch/block:
+        # cqt_vars = {}
+        yp_vars = {}
+        yn_vars = {}
+        top_vars = {}
+
+        for var_name, elems in variable_dict.items():
+            # if var_name in ["batch_normalization"]: # cqt
+            #    cqt_vars[var_name] = elems
+            if var_name in ["conv2d_1", "batch_normalization_2", "contours-reduced"]: # yp
+                yp_vars[var_name] = elems
+            if var_name in ["conv2d_2", "conv2d_3"]: # yn
+                yn_vars[var_name] = elems
+            if var_name in ["conv2d_4", "batch_normalization_3", "conv2d_5"]: # top_vars
+                top_vars[var_name] = elems
+
+        # self.cqt_harmonic_stacking.load_weights(cqt_vars)
+        self.yp_branch.load_weights(yp_vars)
+        self.yn_branch.load_weights(yn_vars)
+        self.top_branch.load_weights(top_vars)
+
+
