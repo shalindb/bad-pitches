@@ -70,6 +70,9 @@ class YnBranch(hk.Module):
         x = jax.nn.sigmoid(x)
         return x
 
+    def load_weights(self, var_dict: dict):
+        pass
+
 class YoBranch(hk.Module):
     def __init__(self, name: Optional[str] = None):
         super().__init__(name=name)
@@ -85,13 +88,15 @@ class YoBranch(hk.Module):
     
 class PosteriorgramModel(hk.Module):
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None, model_dict: Optional[dict] = None):
         super().__init__(name=name)
         self.cqt_harmonic_stacking = CQTHarmonicStacking(name="cqt_harmonic_stacking")
         self.top_branch = TopBranch(name="top_branch")
         self.yp_branch = YpBranch(name="yp_branch")
         self.yn_branch = YnBranch(name="yn_branch")
         self.yo_branch = YoBranch(name="yo_branch")
+        if model_dict:
+            self.load_weights(model_dict)
 
     def __call__(self, audio: jnp.ndarray, is_training: bool) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
         processed = self.cqt_harmonic_stacking(audio)
