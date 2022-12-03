@@ -18,7 +18,9 @@ def smoothed_bce_loss(y_true: jnp.ndarray, y_pred: jnp.ndarray, label_smoothing:
     if label_smoothing > 0:
         y_pred = optax.smooth_labels(y_pred, label_smoothing)
 
-    bce = optax.softmax_cross_entropy(y_pred, y_true)
+    # bce = optax.softmax_cross_entropy(y_pred, y_true)
+    bce = optax.sigmoid_binary_cross_entropy(y_pred, y_true)
+    # bce = optax.safe_root_mean_squares(y_pred, y_true)
     return bce
 
 
@@ -92,7 +94,7 @@ def onset_loss(
     return lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
 
 
-def loss(label_smoothing: float = 0.2, weighted: bool = False, positive_weight: float = 0.5) -> Dict[str, Any]:
+def loss_dict(label_smoothing: float = 0.2, weighted: bool = False, positive_weight: float = 0.5) -> Dict[str, Any]:
     """Creates a keras-compatible dictionary of loss functions to calculate
     the loss for the contour, note and onset posteriorgrams.
 

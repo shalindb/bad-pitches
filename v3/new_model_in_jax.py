@@ -32,29 +32,39 @@ class TopBranch(hk.Module):
         return x
 
     def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_4"] = conv32_5_5(x)
+        vd["batch_normalization_3"] = bn
+        vd["conv2d_5"] = ???
+        """
         pass
 
 class YpBranch(hk.Module):
     def __init__(self, name: Optional[str] = None):
         super().__init__(name=name)
         self.conv16_5_5 = hk.Conv2D(16, (5, 5), name="conv16_5_5")
-        # self.bn1 = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn1")
+        self.bn1 = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn1")
         self.conv8_3_39 = hk.Conv2D(8, (3, 39), name="conv8_3_39")
-        # self.bn2 = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn2")
+        self.bn2 = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn2")
         self.conv_1_5_5 = hk.Conv2D(1, (5, 5), name="conv_1_5_5")
         
     def __call__(self, x: jnp.ndarray, is_training: bool) -> jnp.ndarray:
         x = self.conv16_5_5(x)
-        # x = self.bn1(x, is_training=is_training)
+        x = self.bn1(x, is_training=is_training)
         x = jax.nn.relu(x)
         x = self.conv8_3_39(x)
-        # x = self.bn2(x, is_training=is_training)
+        x = self.bn2(x, is_training=is_training)
         x = jax.nn.relu(x)
         x = self.conv_1_5_5(x)
         x = jax.nn.sigmoid(x)
         return x
 
     def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_1"] = conv8_3_39
+        vd["batch_normalization_2"] = bn2
+        vd["contours-reduced"]] = conv_1_5_5
+        """
         pass
 
 class YnBranch(hk.Module):
@@ -69,6 +79,12 @@ class YnBranch(hk.Module):
         x = self.conv1_7_3(x)
         x = jax.nn.sigmoid(x)
         return x
+    def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_2"] =  conv32_7_7
+        vd["conv2d_3"] = conv1_7_3
+        """
+        pass
 
     def load_weights(self, var_dict: dict):
         pass
@@ -84,6 +100,9 @@ class YoBranch(hk.Module):
         return x
 
     def load_weights(self, var_dict: dict):
+        """
+        vd["conv2d_5"] = conv1_3_3
+        """
         pass
     
 class PosteriorgramModel(hk.Module):
@@ -137,5 +156,6 @@ class PosteriorgramModel(hk.Module):
         self.yp_branch.load_weights(yp_vars)
         self.yn_branch.load_weights(yn_vars)
         self.top_branch.load_weights(top_vars)
+        self.yo_branch.load_weights(top_vars)
 
 
