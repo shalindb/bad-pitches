@@ -126,7 +126,7 @@ Recall that a convolutional kernel in image contexts involves calculating the su
 
         \subpart Suppose we want to modify the loss function to be more robust to unbalanced distributions. One way to do this is to introduce a hyperparameter $\alpha$, which we can use to penalize incorrect predictions more heavily for the minority class (or equivalently, less heavily for the majority class). This is called \emph{weighted cross-entropy} and is given by
         $$
-        \mathcal{L}_\alpha(y, \hat{y}) = - \alpha y \log \hat{y} - (1 - y) \log (1 - \hat{y}).
+        \mathcal{L}_\alpha(y, \hat{y}) := - \alpha y \log \hat{y} - (1 - y) \log (1 - \hat{y}).
         $$
         \begin{enumerate}
             \item[(i)] Find the value of $\hat{y}$ that minimizes the expectation of this loss. Remember that the ground-truth probability of a positive sample is $p$, and $y \sim \text{Bernoulli}(p)$.
@@ -188,10 +188,23 @@ Recall that a convolutional kernel in image contexts involves calculating the su
                 \end{align*}
             }
         \end{enumerate}
-        
-
-        
-
     \end{subparts}
+
+    \newpage
+    \question{Basic Pitch}
+        In 2022, Spotify released a free software known as Basic Pitch that can translate raw audio files to digitized sheet music (known as MIDI). You can find the paper at \url{https://arxiv.org/pdf/2106.02769.pdf}.
+        \begin{subparts}
+            \subpart The paper describes median filtering as a common technique for denoising audio, using a 1D median filter (audio files are essentially one-dimensional time series of frequencies). Suppose we only had access to square median filters. How can we use these square median filters to denoise audio samples?
+
+            \emph{Hint: How do we generally visualize functions of a single variable? Can you apply that here?}
+
+            \answer{Using a $1 \times 1$ median filter here doesn't work because it doesn't modify anything, so no denoising will occur. We can, however, plot frequency against time (known as a \emph{spectrogram}), and then apply a median filter. We can then convert the denoised spectrogram back to audio by aggregating the resulting pixel values for each time step (by, for example, averaging) to collapse it into a 1D vector.
+            
+            One problem with the above is that the median filter may see the true signal as noise, but this can be mitigated by using coarser bins to generate the spectrogram (so multiple pixels on the frequency-axis are positive for the true signal).}
+
+            \subpart Basic Pitch uses various sophisticated losses to determine the quality of the generated MIDI files, but they are all binary. For example, consider the question "Is the note at a given frequency being played?" How does this relate to what you learned in problem (2)?
+            
+            \answer{For this specific question (and other ones used in the paper), it is much more likely to generate an negative sample than a positive one (there are simply many more negative answers, because most sheet music have relatively few frequencies being played compared to those not being played). For example, a piano has 88 keys, but it is essentially impossible to play more than 44 keys simultaneously. As a result, there will be many more negative results than positive ones, and the model may skew towards always predicting a negative value. To account for this, the authors use the weighted cross-entropy loss described in problem (2) with the goal of having the model reward positive predictions much more than negative ones.}
+        \end{subparts}
 
 \end{document}
