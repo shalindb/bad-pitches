@@ -38,7 +38,6 @@ Recall that a convolutional kernel in image contexts involves calculating the su
 
     \subpart For ConvNets, are median filters similar to convolutional layers? Are they still useful? Why or why not?
 
-    \newpage
 
     \subpart Consider the infinite zero matrix 
     $$\mathbf{0} = \begin{bmatrix}
@@ -50,7 +49,6 @@ Recall that a convolutional kernel in image contexts involves calculating the su
     
     Do your answers to (b) and (c) now change?
 
-    
     \subpart Let $K \times K$ denote filter size, $P$ padding size, $S$ stride length, and suppose we are operating on an image of size $H \times W$. What is the runtime complexity of convolution? How about median filtering? Assume no results are cached across different pixels.
 
     \emph{Hint: You can find the median of $n$ numbers in $O(n)$ time.}
@@ -70,8 +68,6 @@ Recall that a convolutional kernel in image contexts involves calculating the su
     \begin{subparts}
         \subpart Suppose $p$ is the ground-truth probability of a positive sample. Find the value of $\hat{y}$ that minimizes the expected loss
         $$\mathbf{E}_{y \sim \text{Bernoulli}(p)}\left[\mathcal{L}(y, \hat{y})\right]$$ by taking the derivative with respect to $\hat{y}$ and setting it to zero.
-
-        
 
         \newpage
         \subpart Now, consider how the model is affected by $p$. Below is the graph of $\mathbf{E}[\mathcal{L}]$ as a function of $\hat{y}$ for $p=0.5$, $p=0.05$, and $p=0.005$. From this, comment on what problems may arise when using binary cross-entropy loss (you do not need to show these rigorously).
@@ -104,16 +100,23 @@ Recall that a convolutional kernel in image contexts involves calculating the su
             \item[(i)] Find the value of $\hat{y}$ that minimizes the expectation of this loss. Remember that the ground-truth probability of a positive sample is $p$, and $y \sim \text{Bernoulli}(p)$.
             
             
-            
             \item[(ii)] Use the value of $\hat{y}$ from part (i) to find $\alpha$ in terms of $p$ such that, when averaged over sufficiently many samples, both the minority and majority classes contribute to the total loss equally.
             
             \emph{Note: This derivation is quite difficult, but the final answer should be relatively simple. Feel free to use a symbolic or graphing calculator.}
             
         \end{enumerate}
-        
-
-        
-
     \end{subparts}
+
+    \newpage
+    \question{Basic Pitch}
+        In 2022, Spotify released a free software known as Basic Pitch that can translate raw audio files to digitized sheet music (known as MIDI). You can find the paper at \url{https://arxiv.org/pdf/2106.02769.pdf}.
+        \begin{subparts}
+            \subpart The paper describes median filtering as a common technique for denoising audio, using a 1D median filter (audio files are essentially one-dimensional time series of frequencies). Suppose we only had access to square median filters. How can we use these square median filters to denoise audio samples?
+
+            \emph{Hint: How do we generally visualize functions of a single variable? Can you apply that here?}
+
+            \subpart Basic Pitch uses various sophisticated losses to determine the quality of the generated MIDI files, but they are all binary. For example, consider the question "Is the note at a given frequency being played?" How does this relate to what you learned in problem (2)?
+            
+        \end{subparts}
 
 \end{document}
