@@ -36,7 +36,7 @@ Recall that a convolutional kernel in image contexts involves calculating the su
 
     Can you think of a scenario where median filtering would be preferable to box-blur filtering? What about the other way around?
 
-    \answer{Median filtering can be very useful for denoising, especially where the noise is extremely pronounced, because it eliminates outliers, whereas box-blur filtering will be largely affected by outliers. Box-blur filtering is useful for universally blurring images, and is also easier to compute.}
+    \answer{Median filtering can be very useful for denoising, especially where the noise is extremely pronounced, because it eliminates outliers, whereas box-blur filtering will be largely affected by outliers. It also retains edges better than box-blur. Box-blur filtering is useful for universally blurring images, and is also easier to compute.}
 
     \subpart For ConvNets, are median filters similar to convolutional layers? Are they still useful? Why or why not?
 
@@ -48,7 +48,7 @@ Recall that a convolutional kernel in image contexts involves calculating the su
         \cdots & 0 & 0 & \cdots \\
         \cdots & 0 & 0 & \cdots \\
         \iddots & \vdots & \vdots & \ddots
-    \end{bmatrix},$$ which, for this problem, represents a bitmap of constant color. Now suppose each pixel in the image is independently flipped to $1$ with probability $p < 0.2$, representing random noise. What is the expected result of applying a $3 \times 3$ box-blur filter to this newly noised image? What about a $3 \times 3$ median filter? Assume the stride length is at least 2.
+    \end{bmatrix},$$ which, for this problem, represents a bitmap of constant color. Now suppose each pixel in the image is independently at random flipped to $1$ with probability $p < 0.2$, representing random noise. What is the expected result of applying a $3 \times 3$ box-blur filter to this newly noised image? What about a $3 \times 3$ median filter? Assume the stride length is at least 3 (so there is no overlap).
     
     Do your answers to (b) and (c) now change?
 
@@ -65,7 +65,7 @@ Recall that a convolutional kernel in image contexts involves calculating the su
         The expected result of applying the median filter is then
         $$ \left( \mathbf{0} + q \cdot \mathbf{J} \right) = q \cdot \mathbf{J}.$$
         
-        $q < \frac{p}{9}$, so if the goal is to restore the original image, median filtering performs much better at this sort of denoising task than box-blur filtering.
+        For $p < 0.2$, $q < \frac{p}{9}$ (and the difference grows much faster as $p \rightarrow 0$), so if the goal is to restore the original image, median filtering performs better at this denoising task than box-blur filtering.
     }
     \subpart Let $K \times K$ denote filter size, $P$ padding size, $S$ stride length, and suppose we are operating on an image of size $H \times W$. What is the runtime complexity of convolution? How about median filtering? Assume no results are cached across different pixels.
 
@@ -100,20 +100,29 @@ Recall that a convolutional kernel in image contexts involves calculating the su
             \end{align*}
         }
 
-        \subpart Now, consider how the model is affected by $p$. Find 
-        $$\pdv{}{p} \mathbf{E}_{y \sim \text{Bernoulli}(p)}[\mathcal{L}(y, \hat{y})]$$
-        using the minimizing value of $\hat{y}$ found in the previous subpart. From this, what values of $p$ will be problematic for our model's predictions from a convergence perspective? (You do not need to show this rigorously.)
+        \newpage
+        \subpart Now, consider how the model is affected by $p$. Below is the graph of $\mathbf{E}[\mathcal{L}]$ as a function of $\hat{y}$ for $p=0.5$, $p=0.05$, and $p=0.005$. From this, comment on what problems may arise when using binary cross-entropy loss (you do not need to show these rigorously).
+        \begin{figure}[h] \centering
+            \includegraphics[width=0.5\textwidth]{binary-cross-entropy-pqr.png}
+        \end{figure}
 
-        \answer{
-            \begin{align*}
-                \pdv{}{p} \mathbf{E}_{y \sim \text{Bernoulli}(p)}[\mathcal{L}(y, \hat{y})]
-                &= \pdv{}{p} \left(- p \log \hat{y} - (1 - p) \log (1 - \hat{y})\right) \\
-                &= - \log \hat{y} + \log(1 - \hat{y}) \\
-                &= \log \frac{1 - \hat{y}}{\hat{y}} \\
-                &= \log \frac{1 - p}{p}.
-            \end{align*}
-            When $\hat{y}$ is close to $0$ or $1$, the loss becomes very unstable. This is the case when $p$ is close to $0$ or $1$, indicating an unbalanced distribution. This means that we will need to have an extremely small learning rate to ensure convergence, which will slow training significantly.
-        }
+        \answer{Answers may vary. Our answer is as follows: For extremely unbalanced distributions (where $p$ is very close to 0 or 1), the optimal value of $\hat{y}=p$ will be difficult to attain because it is very easy to overshoot. This means that in order to minimize loss, the learning rate will need to be extremely small, slowing training significantly. Additionally, the model may simply draw an affinity for the majority class, always outputting $\hat{y} = 1$ or $\hat{y} = 0$, failing to generalize to the minority class.}
+
+        \newpage
+        % Find 
+        % $$\pdv{}{p} \mathbf{E}_{y \sim \text{Bernoulli}(p)}[\mathcal{L}(y, \hat{y})]$$
+        % using the optimal value of $\hat{y}$ found in the previous subpart. From this, what values of $p$ will be problematic for our model's predictions from a convergence perspective? (You do not need to show this rigorously.)
+
+        % \answer{
+        %     \begin{align*}
+        %         \pdv{}{p} \mathbf{E}_{y \sim \text{Bernoulli}(p)}[\mathcal{L}(y, \hat{y})]
+        %         &= \pdv{}{p} \left(- p \log \hat{y} - (1 - p) \log (1 - \hat{y})\right) \\
+        %         &= - \log \hat{y} + \log(1 - \hat{y}) \\
+        %         &= \log \frac{1 - \hat{y}}{\hat{y}} \\
+        %         &= \log \frac{1 - p}{p}.
+        %     \end{align*}
+        %     When $\hat{y}$ is close to $0$ or $1$, the loss becomes very unstable. This is the case when $p$ is close to $0$ or $1$, indicating an unbalanced distribution. This means that we will need to have an extremely small learning rate to ensure convergence, which will slow training significantly.
+        % }
 
         \subpart Suppose we want to modify the loss function to be more robust to unbalanced distributions. One way to do this is to introduce a hyperparameter $\alpha$, which we can use to penalize incorrect predictions more heavily for the minority class (or equivalently, less heavily for the majority class). This is called \emph{weighted cross-entropy} and is given by
         $$

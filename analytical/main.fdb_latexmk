@@ -1,7 +1,8 @@
 # Fdb version 3
-["pdflatex"] 1669961710 "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/main.tex" "main.pdf" "main" 1669961712
+["pdflatex"] 1670378504 "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/main.tex" "main.pdf" "main" 1670378507
+  "binary-cross-entropy-pqr.png" 1670377877 65330 73e982d400e353ee25d5841b88b6b9c0 ""
   "box_blur.png" 1669888873 16014 fd02aebf4b6a7c97fb8124adb4d8fa1b ""
-  "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/main.tex" 1669961706 12737 247ae2a388c05ec7b4fcb270ae3018d0 ""
+  "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/main.tex" 1670378503 13865 327571da0d1381de107db0c3cfa776d4 ""
   "c:/texlive/2021/texmf-dist/fonts/map/fontname/texfonts.map" 1648614084 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "c:/texlive/2021/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1648611085 1004 54797486969f23fa377b128694d548df ""
   "c:/texlive/2021/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1648611085 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -286,10 +287,10 @@
   "c:/texlive/2021/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1648620754 4448422 1ce8db434ffa4259b75148f2b12051ea ""
   "c:/texlive/2021/texmf-var/web2c/pdftex/pdflatex.fmt" 1648620887 2826093 cf05830ad13569ef02c672353f0df60f ""
   "c:/texlive/2021/texmf.cnf" 1648620724 713 e69b156964470283e0530f5060668171 ""
-  "cs170.sty" 1669885771 7949 1b5c585d64157f40e02c4d5cbe052f5b ""
-  "main.aux" 1669961712 918 ab197ad87c1d04ced8e3f701dc84847e "pdflatex"
-  "main.out" 1669961712 282 18c2f3d2f9db9696bf8a744f8c9b375c "pdflatex"
-  "main.tex" 1669961706 12737 247ae2a388c05ec7b4fcb270ae3018d0 ""
+  "cs170.sty" 1669968313 7949 1b5c585d64157f40e02c4d5cbe052f5b ""
+  "main.aux" 1670378506 918 cebfb95a8d447d0ae5e17b1158eb9405 "pdflatex"
+  "main.out" 1670378506 282 18c2f3d2f9db9696bf8a744f8c9b375c "pdflatex"
+  "main.tex" 1670378503 13865 327571da0d1381de107db0c3cfa776d4 ""
   "median_filtered.png" 1669889645 16222 fc1cdcf4feaafee2197500be75f1193b ""
   "orig.png" 1669888856 20853 b575f73d5bcb6ef70c9e9f280614bee0 ""
   (generated)
