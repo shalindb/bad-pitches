@@ -205,6 +205,10 @@ Recall that a convolutional kernel in image contexts involves calculating the su
             \subpart Basic Pitch uses various sophisticated losses to determine the quality of the generated MIDI files, but they are all binary. For example, consider the question "Is the note at a given frequency being played?" How does this relate to what you learned in problem (2)?
             
             \answer{For this specific question (and other ones used in the paper), it is much more likely to generate an negative sample than a positive one (there are simply many more negative answers, because most sheet music have relatively few frequencies being played compared to those not being played). For example, a piano has 88 keys, but it is essentially impossible to play more than 44 keys simultaneously. As a result, there will be many more negative results than positive ones, and the model may skew towards always predicting a negative value. To account for this, the authors use the weighted cross-entropy loss described in problem (2) with the goal of having the model reward positive predictions much more than negative ones.}
+        
+            \subpart Complete the associated HW Jupyter notebook. Comment on what you've learned.
+            
+            \answer{Answers will vary.}
         \end{subparts}
 
 \end{document}
