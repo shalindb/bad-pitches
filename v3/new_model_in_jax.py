@@ -26,6 +26,7 @@ class TopBranch(hk.Module):
         self.bn = hk.BatchNorm(decay_rate=0.9, create_scale=True, create_offset=True, name="bn")
         
     def __call__(self, x: jnp.ndarray, is_training: bool) -> jnp.ndarray:
+        # x = x.transpose(0, 3, 1, 2)
         x = self.conv32_5_5(x)
         x = self.bn(x, is_training=is_training)
         x = jax.nn.relu(x)
@@ -49,8 +50,10 @@ class YpBranch(hk.Module):
         self.conv_1_5_5 = hk.Conv2D(1, (5, 5), name="conv_1_5_5")
         
     def __call__(self, x: jnp.ndarray, is_training: bool) -> jnp.ndarray:
+        # x = x.transpose(0, 3, 1, 2)
         x = self.conv16_5_5(x)
         x = self.bn1(x, is_training=is_training)
+        # print("after conv", x.shape)
         x = jax.nn.relu(x)
         x = self.conv8_3_39(x)
         x = self.bn2(x, is_training=is_training)
@@ -74,6 +77,7 @@ class YnBranch(hk.Module):
         self.conv1_7_3 = hk.Conv2D(1, (7, 3), name="conv1_7_3")
         
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+        # x = x.transpose(0, 3, 1, 2)
         x = self.conv32_7_7(x)
         x = jax.nn.relu(x)
         x = self.conv1_7_3(x)
@@ -122,7 +126,7 @@ class PosteriorgramModel(hk.Module):
         yp = self.yp_branch(processed, is_training)
         yn = self.yn_branch(yp)
         top = self.top_branch(processed, is_training)
-        concat = jax.numpy.concatenate([top, yn], axis=-1) 
+        concat = jax.numpy.concatenate([top, yn], axis=-1)
         yo = self.yo_branch(concat)
         return yp, yn, yo
 
