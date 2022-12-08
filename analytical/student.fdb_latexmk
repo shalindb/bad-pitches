@@ -1,5 +1,5 @@
 # Fdb version 3
-["pdflatex"] 1670468046 "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/student.tex" "student.pdf" "student" 1670468049
+["pdflatex"] 1670486197 "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/student.tex" "student.pdf" "student" 1670486205
   "binary-cross-entropy-pqr.png" 1670377877 65330 73e982d400e353ee25d5841b88b6b9c0 ""
   "box_blur.png" 1669888873 16014 fd02aebf4b6a7c97fb8124adb4d8fa1b ""
   "c:/Users/noaha/berkeley/berkeley-fa22/cs182/project/analytical/student.tex" 1670468045 7406 9fed6cfe28f95205f42e7be786aedce7 ""
@@ -288,11 +288,11 @@
   "c:/texlive/2021/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1648620754 4448422 1ce8db434ffa4259b75148f2b12051ea ""
   "c:/texlive/2021/texmf-var/web2c/pdftex/pdflatex.fmt" 1648620887 2826093 cf05830ad13569ef02c672353f0df60f ""
   "c:/texlive/2021/texmf.cnf" 1648620724 713 e69b156964470283e0530f5060668171 ""
-  "cs170.sty" 1669968313 7949 1b5c585d64157f40e02c4d5cbe052f5b ""
+  "cs170.sty" 1670486185 7949 741525db1d69cfa2d53d2f24ebfbba5b ""
   "median_filtered.png" 1669889645 16222 fc1cdcf4feaafee2197500be75f1193b ""
   "orig.png" 1669888856 20853 b575f73d5bcb6ef70c9e9f280614bee0 ""
-  "student.aux" 1670468049 1026 c48fb204511027813cc46b9d2b07d50d "pdflatex"
-  "student.out" 1670468049 383 f8e77f43fdeef4b29a9d75d6ad5b836c "pdflatex"
+  "student.aux" 1670486204 1026 c48fb204511027813cc46b9d2b07d50d "pdflatex"
+  "student.out" 1670486204 383 f8e77f43fdeef4b29a9d75d6ad5b836c "pdflatex"
   "student.tex" 1670468045 7406 9fed6cfe28f95205f42e7be786aedce7 ""
   (generated)
   "student.aux"
