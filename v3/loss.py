@@ -109,7 +109,7 @@ def loss_dict(label_smoothing: float = 0.2, weighted: bool = False, positive_wei
 
     """
     loss_fn = lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
-    loss_onset = onset_loss(weighted, label_smoothing, positive_weight)
+    loss_onset = onset_loss(weighted=True, label_smoothing=label_smoothing, positive_weight=0.95)
     return {
         "contour": loss_fn,
         "note": loss_fn,
